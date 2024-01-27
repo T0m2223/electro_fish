@@ -281,29 +281,6 @@ class SequentialDataset(Dataset):
                 torch.stack(inputs2), torch.stack(labels2)]
 
 
-
-class TransformerModel(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_heads, output_size):
-        super(TransformerModel, self).__init__()
-
-        self.transformer = nn.Transformer(
-            d_model=input_size,
-            nhead=num_heads,
-            num_encoder_layers=num_layers,
-            num_decoder_layers=num_layers,
-            dim_feedforward=hidden_size,
-            dropout=0.1
-        )
-
-        self.fc = nn.Linear(input_size, output_size)
-
-    def forward(self, x):
-        # Assuming x has shape (seq_len, batch_size, input_size)
-        x = self.transformer(x, x)
-        x = self.fc(x)
-        return x
-
-
 def visualize(data_creator, tank_corners, file_path):
     """
     Creates a video based on provided fish positions.
@@ -338,7 +315,30 @@ def visualize(data_creator, tank_corners, file_path):
     ani.save(file_path, writer='ffmpeg', fps=20)
 
 
-def train(tank_corners, sequence_length=128, batch_size=128):
+
+class TransformerModel(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_heads, output_size):
+        super(TransformerModel, self).__init__()
+
+        self.transformer = nn.Transformer(
+            d_model=input_size,
+            nhead=num_heads,
+            num_encoder_layers=num_layers,
+            num_decoder_layers=num_layers,
+            dim_feedforward=hidden_size,
+            dropout=0.1
+        )
+
+        self.fc = nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        # Assuming x has shape (seq_len, batch_size, input_size)
+        x = self.transformer(x, x)
+        x = self.fc(x)
+        return x
+
+
+def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
     """
     Training function.
     """
@@ -347,13 +347,22 @@ def train(tank_corners, sequence_length=128, batch_size=128):
     dataset = SequentialDataset(dataset, sequence_length=sequence_length)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-    i = 0
-    for inp1, lab1, inp2, lab2 in dataloader:
-        print(inp1.shape)
-        print(lab1.shape)
-        i += 1
-        if i == 9:
-            break
+    optimizer = torch.optim.Adam(model.parameters())
+    
+    for i in epochs:
+        for inp1, lab1, inp2, lab2 in dataloader:
+            model_in = torch.cat(inp1, inp2)
+            label = torch.cat(lab1, lab2)
+
+
+            optimizer.zero_grad()  
+
+            model_out = model(model_in)
+            loss = torch.MSELoss(model_out, label)
+            loss.backward()
+            optimizer.step()
+
+        print(f"loss: {loss}")
 
 
 def simulate(model, fish_pos, tank_corners, num_steps=1000):
