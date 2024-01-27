@@ -231,9 +231,7 @@ class FishDataset(Dataset):
             frame1, frame2 = self.tracks[i], self.tracks[i+ 1]
 
             inp1, inp2 = input_from_position(frame1, self.raycaster)
-
             label = generate_label(frame1, frame2)
-
             lab1 = squish_label(label['d_center'][0], label['d_rotation'][0], label['d_points'][0])
             lab2 = squish_label(label['d_center'][1], label['d_rotation'][1], label['d_points'][1])
 
