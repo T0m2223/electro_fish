@@ -317,7 +317,7 @@ def visualize(data_creator, tank_corners, file_path):
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_heads, output_size):
+    def __init__(self, input_size=60, hidden_size=100, num_layers=15, num_heads=4, output_size=30):
         super(TransformerModel, self).__init__()
 
         self.transformer = nn.Transformer(
@@ -401,5 +401,6 @@ for shape in tank_corner_data.get("shapes", []):
         break
 print('OK')
 
-train(TANK_CORNERS, sequence_length=128, batch_size=256)
+fishModel = TransformerModel()
+train(fishModel, TANK_CORNERS, sequence_length=128, batch_size=256)
 #visualize(tracks_matrix[:400], TANK_CORNERS, 'fish_animation.mp4')
