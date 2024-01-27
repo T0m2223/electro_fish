@@ -353,7 +353,8 @@ def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
     for i in range(epochs):
         for inp1, lab1, inp2, lab2 in dataloader:
             model_in  = torch.cat((inp1, inp2))
-            model_in.size()
+            print(model_in.size())
+            print(model)
             label = torch.cat((lab1, lab2))
 
 
