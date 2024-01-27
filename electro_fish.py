@@ -352,7 +352,7 @@ def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
     
     for i in range(epochs):
         for inp1, lab1, inp2, lab2 in dataloader:
-            model_in  = torch.cat((inp1, inp2), dim=-1)
+            model_in = torch.cat((inp1, inp2), dim=-1)
             print(model_in.size())
             print(model)
             label = torch.cat((lab1, lab2), dim=-1)
@@ -368,15 +368,26 @@ def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
         print(f"loss: {loss}")
 
 
-def simulate(model, fish_pos, tank_corners, num_steps=1000):
+def simulate(model, queue, fish_pos, tank_corners, num_steps=1000, seq_length=128):
     raycaster = Raycaster(tank_corners)
+    
+    for params in model.parameters():
+        params.requires_grad(False)
+
+    all_frames = [*queue.clone()]
 
     for i in range(num_steps):
-        model_in = input_from_position(fish_pos, raycaster)
-        model_out = model(model_in)
+        model_in1, model_in2 = input_from_position(fish_pos, raycaster)
+        model_in = torch.cat((model_in1, model_in2))
+        all_frames.append(fish_pos)
+        queue[:-1] = queue[1:]
+        queue[-1] = model_ine
+
+        model_out = model(queue, queue)
         out1, out2 = unsquish_label(model_out[0]), unsquish_label(model_out[1])
-        print(out1.shape)
-        new_pos = decode_next_position(last_pos)
+        fish_pos = decode_next_position(torch.stack(out1, out2))
+
+    return all_frames
 
 
 TRACK_FILE = 'data/Mormyrus_Pair_01/poses/20230316_Mormyrus_Pair_01.000_20230316_Mormyrus_Pair_01.analysis.h5'
