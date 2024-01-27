@@ -315,28 +315,45 @@ def visualize(data_creator, tank_corners, file_path):
     ani.save(file_path, writer='ffmpeg', fps=20)
 
 
+class TransformerModel(nn.Transformer):
+    """Container module with an encoder, a recurrent or transformer module, and a decoder."""
 
-class TransformerModel(nn.Module):
-    def __init__(self, input_size=60, hidden_size=100, num_layers=15, num_heads=4, output_size=30):
-        super(TransformerModel, self).__init__()
+    def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
+        super(TransformerModel, self).__init__(d_model=ninp, nhead=nhead, dim_feedforward=nhid, num_encoder_layers=nlayers)
+        self.model_type = 'Transformer'
+        self.src_mask = None
+        self.pos_encoder = PositionalEncoding(ninp, dropout)
 
-        self.transformer = nn.Transformer(
-            d_model=input_size,
-            nhead=num_heads,
-            num_encoder_layers=num_layers,
-            num_decoder_layers=num_layers,
-            dim_feedforward=hidden_size,
-            batch_first=True,
-            dropout=0.1
-        )
+        self.input_emb = nn.Embedding(ntoken, ninp)
+        self.ninp = ninp
+        self.decoder = nn.Linear(ninp, ntoken)
 
-        self.fc = nn.Linear(input_size, output_size)
+        self.init_weights()
 
-    def forward(self, x):
-        # Assuming x has shape (seq_len, batch_size, input_size)
-        x = self.transformer(x, x)
-        x = self.fc(x)
-        return x
+    def _generate_square_subsequent_mask(self, sz):
+        return torch.log(torch.tril(torch.ones(sz,sz)))
+
+    def init_weights(self):
+        initrange = 0.1
+        nn.init.uniform_(self.input_emb.weight, -initrange, initrange)
+        nn.init.zeros_(self.decoder.bias)
+        nn.init.uniform_(self.decoder.weight, -initrange, initrange)
+
+    def forward(self, src, has_mask=True):
+        if has_mask:
+            device = src.device
+            if self.src_mask is None or self.src_mask.size(0) != len(src):
+                mask = self._generate_square_subsequent_mask(len(src)).to(device)
+                self.src_mask = mask
+        else:
+            self.src_mask = None
+
+        src = self.input_emb(src) * math.sqrt(self.ninp)
+        src = self.pos_encoder(src)
+        output = self.encoder(src, mask=self.src_mask)
+        output = self.decoder(output)
+        return F.log_softmax(output, dim=-1)
+
 
 def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
     """
@@ -415,6 +432,6 @@ for shape in tank_corner_data.get("shapes", []):
         break
 print('OK')
 
-fishModel = TransformerModel()
+fishModel = TransformerModel(128, 60, 4, 100, 15)
 train(fishModel, TANK_CORNERS, sequence_length=128, batch_size=256)
 #visualize(tracks_matrix[:400], TANK_CORNERS, 'fish_animation.mp4')
