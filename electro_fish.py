@@ -326,6 +326,7 @@ class TransformerModel(nn.Module):
             num_encoder_layers=num_layers,
             num_decoder_layers=num_layers,
             dim_feedforward=hidden_size,
+            batch_first=True,
             dropout=0.1
         )
 
@@ -349,7 +350,7 @@ def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
 
     optimizer = torch.optim.Adam(model.parameters())
     
-    for i in epochs:
+    for i in range(epochs):
         for inp1, lab1, inp2, lab2 in dataloader:
             model_in = torch.cat(inp1, inp2)
             label = torch.cat(lab1, lab2)
