@@ -338,7 +338,6 @@ class TransformerModel(nn.Module):
         x = self.fc(x)
         return x
 
-
 def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
     """
     Training function.
@@ -368,6 +367,7 @@ def train(model, tank_corners, sequence_length=128, batch_size=128, epochs=2):
         print(f"loss: {loss}")
 
 
+
 def simulate(model, queue, fish_pos, tank_corners, num_steps=1000, seq_length=128):
     raycaster = Raycaster(tank_corners)
     
@@ -378,10 +378,10 @@ def simulate(model, queue, fish_pos, tank_corners, num_steps=1000, seq_length=12
 
     for i in range(num_steps):
         model_in1, model_in2 = input_from_position(fish_pos, raycaster)
-        model_in = torch.cat((model_in1, model_in2))
+        model_in = torch.cat((model_in1, model_in2), dim=-1)
         all_frames.append(fish_pos)
         queue[:-1] = queue[1:]
-        queue[-1] = model_ine
+        queue[-1] = model_in
 
         model_out = model(queue, queue)
         out1, out2 = unsquish_label(model_out[0]), unsquish_label(model_out[1])
